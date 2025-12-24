@@ -1,0 +1,7 @@
+{
+  "name": "NovaMail - Premium Temp Mail Platform",
+  "description": "A sophisticated temporary email platform featuring custom domain selection, dark/light themes, and a responsive inbox for secure, anonymous communication.",
+  "requestFramePermissions": [
+    "clipboard-read"
+  ]
+}
