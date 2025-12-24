@@ -3,36 +3,39 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { 
   Mail, RefreshCw, Copy, Trash2, Moon, Sun, Shield, 
   Layers, ChevronRight, Inbox as InboxIcon, CheckCircle, 
-  ExternalLink, ArrowLeft, Clock, Zap 
+  ExternalLink, ArrowLeft, Clock, Zap, ShieldCheck, EyeOff
 } from 'lucide-react';
-import { MailMessage, Theme } from './types';
-import { DOMAINS, MOCK_MESSAGES_TEMPLATES } from './constants';
+import { MailMessage, Theme } from './types.ts';
+import { DOMAINS, MOCK_MESSAGES_TEMPLATES } from './constants.ts';
 
 const Logo = () => (
-  <div className="flex items-center gap-2 group">
-    <div className="relative p-2 bg-indigo-600 rounded-xl overflow-hidden shadow-lg shadow-indigo-600/30 group-hover:scale-110 transition-transform duration-300">
-      <Mail className="w-6 h-6 text-white relative z-10" />
-      <div className="absolute top-0 right-0 p-0.5 bg-amber-400 rounded-bl-lg">
-        <Clock className="w-2.5 h-2.5 text-indigo-900" />
+  <div className="flex items-center gap-3 group">
+    <div className="relative">
+      <div className="p-2.5 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl shadow-xl shadow-indigo-500/20 group-hover:rotate-6 transition-transform duration-500">
+        <Mail className="w-7 h-7 text-white" />
       </div>
-      <div className="absolute -bottom-1 -left-1 opacity-20">
-        <Zap className="w-8 h-8 text-white fill-current" />
+      <div className="absolute -top-1 -right-1 p-1 bg-amber-400 rounded-lg border-2 border-white dark:border-slate-950 shadow-sm animate-bounce group-hover:animate-none">
+        <Clock className="w-3 h-3 text-indigo-950" />
       </div>
     </div>
     <div className="flex flex-col">
-      <span className="text-xl font-black tracking-tighter bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent leading-none">
-        NOVAMAIL
-      </span>
-      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase mt-0.5">
-        Disposable Inbox
+      <div className="flex items-baseline gap-0.5">
+        <span className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">
+          NOVAMAIL
+        </span>
+        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+      </div>
+      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] uppercase mt-1">
+        Vanishing Identities
       </span>
     </div>
   </div>
 );
 
 const App: React.FC = () => {
+  // Theme state with local storage persistence
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme') as Theme;
+    const saved = localStorage.getItem('novamail-theme') as Theme;
     if (saved) return saved;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
@@ -47,7 +50,7 @@ const App: React.FC = () => {
   const generatorRef = useRef<HTMLElement>(null);
   const fullEmail = useMemo(() => `${prefix}${domain}`, [prefix, domain]);
 
-  // Handle Theme Toggle
+  // Effect to handle theme updates on the root HTML element
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -55,10 +58,12 @@ const App: React.FC = () => {
     } else {
       root.classList.remove('dark');
     }
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('novamail-theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(fullEmail);
@@ -78,11 +83,13 @@ const App: React.FC = () => {
   };
 
   const simulateArrival = useCallback(() => {
+    if (isLoading) return;
     setIsLoading(true);
+    // Simulate server latency
     setTimeout(() => {
       const template = MOCK_MESSAGES_TEMPLATES[Math.floor(Math.random() * MOCK_MESSAGES_TEMPLATES.length)];
       const newMessage: MailMessage = {
-        id: Date.now().toString(),
+        id: Math.random().toString(36).substring(2, 15),
         from: template.from,
         subject: template.subject,
         body: template.body,
@@ -91,84 +98,82 @@ const App: React.FC = () => {
       };
       setInbox(prev => [newMessage, ...prev]);
       setIsLoading(false);
-    }, 1200);
-  }, []);
+    }, 1500);
+  }, [isLoading]);
 
   const scrollToGenerator = () => {
     generatorRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Auto-simulate arrival of a welcome mail
   useEffect(() => {
-    const timer = setTimeout(simulateArrival, 3000);
+    const timer = setTimeout(simulateArrival, 4000);
     return () => clearTimeout(timer);
-  }, [simulateArrival]);
+  }, []);
 
   return (
-    <div className="min-h-screen flex flex-col transition-colors duration-300 bg-slate-50 dark:bg-slate-950">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div className="flex flex-col min-h-screen">
+      {/* Navbar */}
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
           <Logo />
           
-          <div className="flex items-center gap-2 sm:gap-4">
-            <nav className="hidden md:flex items-center gap-6 mr-6 text-sm font-semibold text-slate-500 dark:text-slate-400">
-              <button onClick={scrollToGenerator} className="hover:text-indigo-600 transition-colors">Generator</button>
-              <button onClick={() => setDomain(DOMAINS[3].id)} className="hover:text-indigo-600 transition-colors">Premium</button>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 transition-colors">Docs</a>
-            </nav>
+          <div className="flex items-center gap-3">
             <button 
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+              className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
               aria-label="Toggle Theme"
             >
               {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
             <button 
               onClick={scrollToGenerator}
-              className="hidden sm:block px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-slate-900/10 dark:shadow-white/5"
+              className="hidden sm:flex items-center gap-2 px-6 py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 text-sm font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-slate-900/10 dark:shadow-white/5"
             >
-              Get Started
+              <Zap className="w-4 h-4 fill-current" />
+              CREATE INBOX
             </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8 flex flex-col gap-8">
-        {/* Email Generator Area */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-10 space-y-10">
+        {/* Generator Section */}
         <section 
           ref={generatorRef}
-          className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 overflow-hidden"
+          className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none"
         >
-          <div className="p-6 md:p-12">
-            <div className="max-w-3xl mx-auto text-center mb-10">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-widest mb-6 animate-pulse">
-                <Zap className="w-3.5 h-3.5" />
-                Active Session
+          <div className="p-8 md:p-16">
+            <div className="max-w-3xl mx-auto text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
+                <ShieldCheck className="w-4 h-4" />
+                Anti-Spam Shield Enabled
               </div>
-              <h2 className="text-3xl md:text-4xl font-black mb-4 dark:text-white">Your Anonymous Identity</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-lg leading-relaxed">
-                Protect your privacy from trackers. Use our premium high-propagation domains for Netflix, Steam, and GitHub verification.
+              <h2 className="text-4xl md:text-5xl font-black mb-6 dark:text-white tracking-tight">
+                Privacy is not a privilege. <br/>
+                <span className="text-indigo-600 dark:text-indigo-400">It's a requirement.</span>
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto">
+                Generate a temporary inbox in seconds. Use it for Netflix trials, GitHub, or any service you don't trust.
               </p>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto bg-slate-50 dark:bg-slate-950 p-2 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-              {/* Prefix Input */}
+            <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto bg-slate-100 dark:bg-slate-950 p-3 rounded-[2rem] border border-slate-200 dark:border-slate-800/50">
               <div className="flex-1 flex flex-col min-w-0">
                 <input 
                   type="text"
                   value={prefix}
                   onChange={(e) => setPrefix(e.target.value)}
                   placeholder="Enter name..."
-                  className="w-full px-6 py-4 bg-transparent outline-none font-mono font-bold text-xl text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                  className="w-full px-6 py-4 bg-transparent outline-none font-mono font-bold text-2xl text-slate-900 dark:text-white placeholder:text-slate-400"
                 />
               </div>
 
-              {/* Domain Selector */}
-              <div className="relative md:w-64">
+              <div className="relative md:w-72">
                 <select 
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
-                  className="w-full appearance-none h-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-700 dark:text-slate-200 pr-10 cursor-pointer shadow-sm"
+                  className="w-full appearance-none h-full px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all font-black text-slate-800 dark:text-slate-100 pr-12 cursor-pointer shadow-sm"
                 >
                   {DOMAINS.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -176,80 +181,79 @@ const App: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                  <ChevronRight className="w-4 h-4 rotate-90" />
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <ChevronRight className="w-5 h-5 rotate-90" />
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-2">
                 <button 
                   onClick={copyToClipboard}
-                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95 whitespace-nowrap"
+                  className="flex-1 md:flex-none flex items-center justify-center gap-3 px-10 py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl transition-all shadow-xl shadow-indigo-600/30 active:scale-95 whitespace-nowrap"
                 >
                   {isCopied ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                  <span>{isCopied ? 'Copied!' : 'Copy Address'}</span>
+                  <span>{isCopied ? 'COPIED!' : 'COPY EMAIL'}</span>
                 </button>
                 <button 
                   onClick={generateNewEmail}
-                  className="flex items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 transition-all hover:rotate-180 duration-500 shadow-sm"
-                  title="New Identity"
+                  className="flex items-center justify-center p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl text-slate-600 dark:text-slate-300 transition-all hover:rotate-180 duration-700 shadow-sm"
+                  title="Refresh Identity"
                 >
                   <RefreshCw className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
-            <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+            <div className="mt-12 flex flex-wrap justify-center gap-8 text-xs font-black uppercase tracking-widest text-slate-400">
               <div className="flex items-center gap-2">
-                <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded">
-                  <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
-                </div>
-                <span className="font-semibold">End-to-End Privacy</span>
+                <EyeOff className="w-4 h-4 text-indigo-500" />
+                Zero Tracking
               </div>
               <div className="flex items-center gap-2">
-                <div className="p-1 bg-indigo-100 dark:bg-indigo-900/30 rounded">
-                  <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <span className="font-semibold">Premium Streaming Ready</span>
+                <Zap className="w-4 h-4 text-amber-500" />
+                Instant Delivery
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-green-500" />
+                Auto-Purge
               </div>
             </div>
           </div>
         </section>
 
-        {/* Inbox Section */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[650px]">
-          {/* List - Hide on mobile if mail is selected */}
-          <div className={`${selectedMail ? 'hidden lg:flex' : 'flex'} lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden flex-col shadow-xl shadow-slate-200/40 dark:shadow-none`}>
-            <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-                  <InboxIcon className="w-4 h-4 text-white" />
+        {/* Inbox Console */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[700px]">
+          {/* List View */}
+          <div className={`${selectedMail ? 'hidden lg:flex' : 'flex'} lg:col-span-5 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden flex-col shadow-xl`}>
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                  <InboxIcon className="w-5 h-5 text-white" />
                 </div>
-                <span className="font-black dark:text-white uppercase tracking-wider text-sm">Active Inbox</span>
-                <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full ring-1 ring-indigo-200 dark:ring-indigo-800">
-                  {inbox.length}
-                </span>
+                <div className="flex flex-col">
+                  <span className="font-black dark:text-white uppercase tracking-wider text-sm">Inbox</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">{inbox.length} Messages Total</span>
+                </div>
               </div>
               <button 
                 onClick={simulateArrival}
                 disabled={isLoading}
-                className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-slate-800"
+                className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all p-2.5 rounded-xl hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
               >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
             
             <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
               {inbox.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full p-12 text-center">
-                  <div className="w-20 h-20 bg-slate-50 dark:bg-slate-950 rounded-full flex items-center justify-center mb-6 relative">
+                <div className="flex flex-col items-center justify-center h-full p-12 text-center fade-in">
+                  <div className="w-24 h-24 bg-slate-50 dark:bg-slate-950 rounded-full flex items-center justify-center mb-8 relative border border-slate-100 dark:border-slate-800">
                     <Mail className="w-10 h-10 text-slate-200 dark:text-slate-800" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-full animate-[spin_10s_linear_infinite]"></div>
+                    <div className="absolute inset-0 border-2 border-dashed border-indigo-500/30 rounded-full animate-[spin_20s_linear_infinite]"></div>
                   </div>
-                  <h4 className="text-slate-700 dark:text-slate-300 font-bold mb-2">Awaiting Messages</h4>
-                  <p className="text-xs text-slate-400 max-w-[200px] mx-auto leading-relaxed">
-                    Messages usually arrive within 10-30 seconds of being sent.
+                  <h4 className="text-slate-800 dark:text-slate-200 font-black uppercase tracking-widest text-sm mb-3">Syncing Server...</h4>
+                  <p className="text-xs text-slate-400 max-w-[220px] mx-auto leading-relaxed font-medium">
+                    Our nodes are active. Your inbox is ready to receive messages from anywhere.
                   </p>
                 </div>
               ) : (
@@ -257,20 +261,20 @@ const App: React.FC = () => {
                   <button
                     key={mail.id}
                     onClick={() => setSelectedMail(mail)}
-                    className={`w-full text-left p-5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all relative group ${selectedMail?.id === mail.id ? 'bg-indigo-50/50 dark:bg-indigo-900/10 border-l-4 border-indigo-600' : 'border-l-4 border-transparent'}`}
+                    className={`w-full text-left p-6 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all relative group border-l-[6px] ${selectedMail?.id === mail.id ? 'bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-600' : 'border-transparent'}`}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <span className="font-bold text-sm truncate pr-2 dark:text-slate-200">{mail.from.split('<')[0]}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase whitespace-nowrap tracking-tighter">{mail.timestamp}</span>
+                      <span className="font-black text-sm truncate dark:text-slate-200">{mail.from.split('<')[0]}</span>
+                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">{mail.timestamp}</span>
                     </div>
-                    <div className="text-xs font-bold text-slate-800 dark:text-slate-300 mb-2 truncate group-hover:text-indigo-600 transition-colors">{mail.subject}</div>
-                    <div className="text-xs text-slate-400 truncate max-w-[85%] line-clamp-1">{mail.body}</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-slate-300 mb-2 truncate group-hover:text-indigo-600 transition-colors">{mail.subject}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[90%] font-medium">{mail.body}</div>
                     
                     <button 
                       onClick={(e) => { e.stopPropagation(); deleteMessage(mail.id); }}
-                      className="absolute right-4 bottom-5 opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all transform translate-x-2 group-hover:translate-x-0"
+                      className="absolute right-4 bottom-6 opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </button>
                 ))
@@ -278,74 +282,75 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Viewer - Show on mobile if mail is selected */}
-          <div className={`${!selectedMail ? 'hidden lg:flex' : 'flex'} lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden flex-col shadow-xl shadow-slate-200/40 dark:shadow-none`}>
+          {/* Mail Content View */}
+          <div className={`${!selectedMail ? 'hidden lg:flex' : 'flex'} lg:col-span-7 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden flex-col shadow-xl`}>
             {selectedMail ? (
-              <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                  <div className="flex items-center gap-4 mb-6">
+              <div className="flex flex-col h-full fade-in">
+                <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/40">
+                  <div className="flex items-center gap-4 mb-8">
                     <button 
                       onClick={() => setSelectedMail(null)}
-                      className="lg:hidden p-2 text-slate-500 hover:text-indigo-600 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm"
+                      className="lg:hidden p-3 text-slate-500 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"
                     >
                       <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <div className="flex-1">
-                      <h3 className="text-xl md:text-2xl font-black dark:text-white leading-tight tracking-tight">{selectedMail.subject}</h3>
-                    </div>
+                    <h3 className="text-2xl md:text-3xl font-black dark:text-white leading-none tracking-tight flex-1">
+                      {selectedMail.subject}
+                    </h3>
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={() => deleteMessage(selectedMail.id)}
-                        className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all"
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-6 h-6" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/50 shadow-sm">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-lg">
+                  <div className="flex items-center gap-5 p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-500/20">
                       {selectedMail.from.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-black dark:text-slate-200 truncate">{selectedMail.from}</div>
-                      <div className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-1">Received {selectedMail.timestamp}</div>
-                    </div>
-                    <div className="hidden sm:flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-full border border-indigo-100 dark:border-indigo-800">
-                      <Shield className="w-3 h-3" /> VERIFIED
+                      <div className="text-base font-black dark:text-slate-100 truncate">{selectedMail.from}</div>
+                      <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1.5 flex items-center gap-2">
+                        <span>SENT TO: {fullEmail}</span>
+                        <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+                        <span>{selectedMail.timestamp}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex-1 p-8 overflow-y-auto">
-                  <div className="max-w-none text-slate-600 dark:text-slate-300 leading-loose text-base whitespace-pre-wrap">
+                <div className="flex-1 p-10 overflow-y-auto">
+                  <div className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg font-medium whitespace-pre-wrap">
                     {selectedMail.body}
                   </div>
                   
-                  <div className="mt-16 p-8 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex flex-col items-center gap-6 text-center">
-                    <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center shadow-sm">
-                      <Shield className="w-6 h-6 text-indigo-600" />
+                  <div className="mt-16 p-10 rounded-[2.5rem] border-4 border-dashed border-slate-100 dark:border-slate-800/50 bg-slate-50 dark:bg-slate-950/20 flex flex-col items-center gap-8 text-center">
+                    <div className="w-16 h-16 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-md">
+                      <ShieldCheck className="w-8 h-8 text-indigo-600" />
                     </div>
                     <div>
-                      <h5 className="font-bold dark:text-white mb-2">Identity Shield Active</h5>
-                      <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
-                        This email was scanned for malicious trackers and scripts. Your real identity remains hidden.
+                      <h5 className="text-xl font-black dark:text-white mb-3">VanishGuard™ Active</h5>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed font-medium">
+                        This session is fully encrypted. All contents will be permanently deleted upon identity reset.
                       </p>
                     </div>
-                    <button className="flex items-center gap-2 px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-slate-900/20 dark:shadow-white/5">
-                      VIEW ORIGINAL SOURCE <ExternalLink className="w-4 h-4" />
+                    <button className="flex items-center gap-3 px-10 py-4 bg-slate-950 dark:bg-white text-white dark:text-slate-950 text-sm font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-slate-900/30 dark:shadow-white/5 uppercase tracking-widest">
+                      SOURCE CODE <ExternalLink className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-slate-400">
-                <div className="w-32 h-32 bg-slate-50 dark:bg-slate-950 rounded-full flex items-center justify-center mb-8 border border-slate-100 dark:border-slate-800 shadow-inner">
-                  <InboxIcon className="w-14 h-14 opacity-5" />
+              <div className="flex-1 flex flex-col items-center justify-center p-16 text-center">
+                <div className="w-36 h-36 bg-slate-50 dark:bg-slate-950 rounded-[3rem] flex items-center justify-center mb-10 border border-slate-200 dark:border-slate-800 shadow-inner">
+                  <InboxIcon className="w-16 h-16 text-slate-200 dark:text-slate-800" />
                 </div>
-                <h3 className="text-xl font-black text-slate-700 dark:text-slate-300 mb-4 tracking-tight uppercase">Viewer Hub</h3>
-                <p className="max-w-xs text-sm leading-relaxed text-slate-400 font-medium">
-                  Select a message from the sidebar to inspect its content, verify links, and manage attachments securely.
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-5 tracking-tight uppercase">Control Center</h3>
+                <p className="max-w-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                  Open a message to interact with its content. Links and images are sanitized for your protection.
                 </p>
               </div>
             )}
@@ -354,42 +359,39 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-16 mt-16">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
+      <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-20 mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-4 gap-16">
           <div className="col-span-1 md:col-span-2">
             <Logo />
-            <p className="text-base text-slate-500 dark:text-slate-400 max-w-sm mt-6 leading-relaxed">
-              NovaMail is the premium choice for temporary communication. 
-              Our servers are distributed globally to ensure 100% deliverability for account verifications and sensitive registrations.
+            <p className="text-lg text-slate-500 dark:text-slate-400 max-w-md mt-8 font-medium leading-relaxed">
+              Engineered for the modern web. NovaMail provides premium temporary mailboxes with high-reputation domains that bypass standard blocks.
             </p>
           </div>
           <div>
-            <h4 className="font-black text-sm uppercase tracking-widest mb-6 dark:text-white">Services</h4>
-            <ul className="text-sm text-slate-500 dark:text-slate-400 space-y-4 font-semibold">
-              <li><button onClick={scrollToGenerator} className="hover:text-indigo-600 transition-colors">Generate Inbox</button></li>
-              <li><a href="#" className="hover:text-indigo-600 transition-colors">Premium Domains</a></li>
-              <li><a href="#" className="hover:text-indigo-600 transition-colors">API for Developers</a></li>
-              <li><a href="#" className="hover:text-indigo-600 transition-colors">Blacklist Checker</a></li>
+            <h4 className="font-black text-xs uppercase tracking-[0.2em] mb-8 dark:text-white text-indigo-600">Product</h4>
+            <ul className="space-y-4 text-sm font-bold text-slate-500 dark:text-slate-400">
+              <li><button onClick={scrollToGenerator} className="hover:text-indigo-600 transition-colors">Generator</button></li>
+              <li><a href="#" className="hover:text-indigo-600 transition-colors">Premium Node List</a></li>
+              <li><a href="#" className="hover:text-indigo-600 transition-colors">API Docs</a></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-black text-sm uppercase tracking-widest mb-6 dark:text-white">Support</h4>
-            <ul className="text-sm text-slate-500 dark:text-slate-400 space-y-4 font-semibold">
-              <li><a href="#" className="hover:text-indigo-600 transition-colors">System Status</a></li>
-              <li><a href="#" className="hover:text-indigo-600 transition-colors">Privacy Shield</a></li>
-              <li><a href="#" className="hover:text-indigo-600 transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-indigo-600 transition-colors">Report Abuse</a></li>
+            <h4 className="font-black text-xs uppercase tracking-[0.2em] mb-8 dark:text-white text-indigo-600">Governance</h4>
+            <ul className="space-y-4 text-sm font-bold text-slate-500 dark:text-slate-400">
+              <li><a href="#" className="hover:text-indigo-600 transition-colors">Privacy Charter</a></li>
+              <li><a href="#" className="hover:text-indigo-600 transition-colors">Service Status</a></li>
+              <li><a href="#" className="hover:text-indigo-600 transition-colors">Abuse Desk</a></li>
             </ul>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 mt-16 pt-8 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-          <p>© 2024 NOVAMAIL PREMIUM SERVICES. ALL RIGHTS RESERVED.</p>
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-              <span>GLOBAL CLUSTERS ACTIVE</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-20 pt-10 border-t border-slate-100 dark:border-slate-900 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+          <p>© 2024 NOVAMAIL PREMIUM. PROTECTING YOUR FOOTPRINT.</p>
+          <div className="flex items-center gap-10">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+              <span>GLOBAL NODES: ONLINE</span>
             </div>
-            <span>v2.1.0-STABLE</span>
+            <span>STABLE v2.5.0</span>
           </div>
         </div>
       </footer>
